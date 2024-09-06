@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Student Enrollment Form</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js"></script>
+</head>
+<body onload="checkPrimaryKey()">
+    <div class="container">
+        <h2>Student Enrollment Form</h2>
+        <form id="studentForm">
+            <div class="form-group">
+                <label for="rollNo">Roll No:</label>
+                <input type="text" class="form-control" id="rollNo" placeholder="Enter Roll No" required>
+            </div>
+            <div class="form-group">
+                <label for="fullName">Full Name:</label>
+                <input type="text" class="form-control" id="fullName" placeholder="Enter Full Name">
+            </div>
+            <div class="form-group">
+                <label for="class">Class:</label>
+                <input type="text" class="form-control" id="class" placeholder="Enter Class">
+            </div>
+            <div class="form-group">
+                <label for="birthDate">Birth Date:</label>
+                <input type="date" class="form-control" id="birthDate">
+            </div>
+            <div class="form-group">
+                <label for="address">Address:</label>
+                <textarea class="form-control" id="address" placeholder="Enter Address"></textarea>
+            </div>
+            <div class="form-group">
+                <label for="enrollmentDate">Enrollment Date:</label>
+                <input type="date" class="form-control" id="enrollmentDate">
+            </div>
+            <button type="button" class="btn btn-primary" id="saveBtn" onclick="saveStudent()">Save</button>
+            <button type="button" class="btn btn-warning" id="updateBtn" onclick="updateStudent()" disabled>Update</button>
+            <button type="button" class="btn btn-default" onclick="resetForm()">Reset</button>
+        </form>
+    </div>
+
+    <script>
+        function validateAndGetFormData() {
+            var rollNo = $("#rollNo").val();
+            if (rollNo === "") {
+                alert("Roll No is required.");
+                $("#rollNo").focus();
+                return "";
+            }
+            var fullName = $("#fullName").val();
+            var studentClass = $("#class").val();
+            var birthDate = $("#birthDate").val();
+            var address = $("#address").val();
+            var enrollmentDate = $("#enrollmentDate").val();
+            return JSON.stringify({
+                rollNo: rollNo,
+                fullName: fullName,
+                studentClass: studentClass,
+                birthDate: birthDate,
+                address: address,
+                enrollmentDate: enrollmentDate
+            });
+        }
+
+        function createPUTRequest(connToken, jsonObj, dbName, relName ) {
+            return JSON.stringify({
+                token: connToken,
+                dbName: dbName,
+                cmd: "PUT",
+                rel: relName,
+                jsonStr: jsonObj
+            });
+        }
+
+        function executeCommand(reqString, dbBaseUrl, apiEndPointUrl) {
+            var url = dbBaseUrl + apiEndPointUrl;
+            var jsonObj;
+            $.post(url, reqString, function (result) {
+                jsonObj = JSON.parse(result);
+            }).fail(function (result) {
+                jsonObj = JSON.parse(result.responseText);
+            });
+            return jsonObj;
+        }
+
+        function checkPrimaryKey() {
+            var rollNo = $("#rollNo").val();
+            if (rollNo === "") {
+                return;
+            }
+            var reqStr = createPUTRequest("90932069|-31949218215622375|90962406", 
+                                          `{"rollNo":"${rollNo}"}`, "SCHOOL-DB", "STUDENT-TABLE");
+            var resultObj = executeCommand(reqStr, "http://api.login2explore.com:5577", "/api/iml");
+            if (resultObj && resultObj.status === "success") {
+                var data = resultObj.data;
+                if (data.length > 0) {
+                    populateForm(data[0]);
+                    $("#updateBtn").prop('disabled', false);
+                } else {
+                    $("#saveBtn").prop('disabled', false);
+                }
+            }
+        }
+
+        function populateForm(data) {
+            $("#fullName").val(data.fullName);
+            $("#class").val(data.studentClass);
+            $("#birthDate").val(data.birthDate);
+            $("#address").val(data.address);
+            $("#enrollmentDate").val(data.enrollmentDate);
+        }
+
+        function saveStudent() {
+            var jsonStr = validateAndGetFormData();
+            if (jsonStr === "") return;
+            var putReqStr = createPUTRequest("90932069|-31949218215622375|90962406",
+                        jsonStr, "SAMPLE", "EMP-REL");
+            executeCommand(reqStr, "http://api.login2explore.com:5577", "/api/iml");
+            resetForm();
+        }
+
+        function updateStudent() {
+            var jsonStr = validateAndGetFormData();
+            if (jsonStr === "") return;
+            var reqStr = createPUTRequest("90932069|-31949218215622375|90962406", jsonStr, "SCHOOL-DB", "STUDENT-TABLE");
+            executeCommand(reqStr, "http://api.login2explore.com:5577", "/api/iml");
+            resetForm();
+        }
+
+        function resetForm() {
+            $("#rollNo").val("");
+            $("#fullName").val("");
+            $("#class").val("");
+            $("#birthDate").val("");
+            $("#address").val("");
+            $("#enrollmentDate").val("");
+            $("#rollNo").focus();
+            $("#saveBtn").prop('disabled', true);
+            $("#updateBtn").prop('disabled', true);
+        }
+    </script>
+</body>
+</html>
